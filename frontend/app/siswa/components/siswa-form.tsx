@@ -42,9 +42,11 @@ export const SiswaForm: React.FC<SiswaFormProps> = ({ initialData, onSuccess }) 
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         try {
-            const url = initialData 
-                ? `http://localhost:5000/api/siswa/${initialData.id}`
-                : 'http://localhost:5000/api/siswa';
+            const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+            const url = initialData
+                ? `${API_URL}/api/siswa/${initialData.id}`
+                : `${API_URL}/api/siswa`;
             
             const method = initialData ? 'PUT' : 'POST';
 

@@ -41,7 +41,11 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
         }
 
         try {
-            const response = await fetch(`http://localhost:5000/api/siswa/${data.id}`, {
+            // 1. Definisikan alamat API dari environment variable
+            const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+            // 2. Gunakan variabel tersebut di dalam URL fetch
+            const response = await fetch(`${API_URL}/api/siswa/${data.id}`, {
                 method: 'DELETE',
             });
 
