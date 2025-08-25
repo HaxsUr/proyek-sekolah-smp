@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react"; // Tambahkan useEffect
 import { useRouter } from "next/navigation";
 import { Plus, Printer } from "lucide-react";
 import { toast } from "sonner"; // <-- Ganti import ini
@@ -27,6 +27,15 @@ export const SiswaClient: React.FC<SiswaClientProps> = ({ initialData }) => {
     // const [data, setData] = useState<Siswa[]>(initialData); 
     const router = useRouter();
     // const { toast } = useToast(); // <-- HAPUS BARIS INI
+
+    useEffect(() => {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            // Jika tidak ada token, tendang kembali ke halaman login
+            toast.error("Akses Ditolak", { description: "Silakan login terlebih dahulu." });
+            router.push('/login');
+        }
+    }, [router]); // Tambahkan router sebagai dependensi
 
     const handleFormSuccess = (message: string) => {
         setOpen(false); // Tutup dialog

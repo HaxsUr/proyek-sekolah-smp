@@ -1,38 +1,77 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const db = require('./db'); // Kita akan buat file ini selanjutnya
+const db = require('./db');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
-app.use(express.json()); // Memungkinkan server membaca body JSON dari request
+// Konfigurasi CORS agar bisa menerima header otentikasi dari frontend
+app.use(cors({
+    origin: '*', // Di produksi, ganti dengan URL Vercel Anda
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+app.use(express.json());
 
-// Fungsi untuk inisialisasi tabel
-const initializeDatabase = async () => {
-    try {
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS siswa (
-                id SERIAL PRIMARY KEY,
-                nisn VARCHAR(10) UNIQUE NOT NULL,
-                nama_lengkap VARCHAR(100) NOT NULL,
-                kelas VARCHAR(10) NOT NULL,
-                alamat TEXT,
-                created_at TIMESTAMPTZ DEFAULT NOW()
-            );
-        `);
-        console.log("Tabel 'siswa' berhasil disiapkan.");
-    } catch (err) {
-        console.error("Gagal inisialisasi database:", err);
+// --- FUNGSI BARU UNTUK OTENTIKASI ---
+
+// Middleware untuk memverifikasi token JWT
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+    if (token == null) {
+        return res.sendStatus(401); // Unauthorized
     }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        if (err) {
+            return res.sendStatus(403); // Forbidden
+        }
+        req.user = user;
+        next();
+    });
 };
 
-// Routes (Jalur API)
+// --- ENDPOINT BARU UNTUK LOGIN ---
 
-// GET: Mendapatkan semua data siswa
-app.get('/api/siswa', async (req, res) => {
+app.post('/api/login', async (req, res) => {
+    const { username, password } = req.body;
+
+    try {
+        // 1. Cari user di database
+        const userResult = await db.query('SELECT * FROM users WHERE username = $1', [username]);
+        if (userResult.rows.length === 0) {
+            return res.status(400).json({ error: "Username atau password salah." });
+        }
+
+        const user = userResult.rows[0];
+
+        // 2. Bandingkan password yang diinput dengan hash di database
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+        if (!isMatch) {
+            return res.status(400).json({ error: "Username atau password salah." });
+        }
+
+        // 3. Buat Token JWT jika password cocok
+        const payload = { id: user.id, username: user.username };
+        const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+        res.json({ accessToken });
+
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- RUTE CRUD SISWA YANG SEKARANG DILINDUNGI ---
+// Perhatikan penambahan 'authenticateToken' di setiap rute
+
+app.get('/api/siswa', authenticateToken, async (req, res) => {
     try {
         const result = await db.query('SELECT * FROM siswa ORDER BY id ASC');
         res.status(200).json(result.rows);
@@ -41,8 +80,7 @@ app.get('/api/siswa', async (req, res) => {
     }
 });
 
-// POST: Menambahkan siswa baru
-app.post('/api/siswa', async (req, res) => {
+app.post('/api/siswa', authenticateToken, async (req, res) => {
     const { nisn, nama_lengkap, kelas, alamat } = req.body;
     try {
         const result = await db.query(
@@ -55,8 +93,7 @@ app.post('/api/siswa', async (req, res) => {
     }
 });
 
-// PUT: Mengupdate data siswa berdasarkan ID
-app.put('/api/siswa/:id', async (req, res) => {
+app.put('/api/siswa/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { nisn, nama_lengkap, kelas, alamat } = req.body;
     try {
@@ -70,19 +107,16 @@ app.put('/api/siswa/:id', async (req, res) => {
     }
 });
 
-// DELETE: Menghapus data siswa berdasarkan ID
-app.delete('/api/siswa/:id', async (req, res) => {
+app.delete('/api/siswa/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     try {
         await db.query('DELETE FROM siswa WHERE id = $1', [id]);
-        res.status(204).send(); // 204 No Content
+        res.status(204).send();
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-
 app.listen(PORT, () => {
     console.log(`Server berjalan di http://localhost:${PORT}`);
-    initializeDatabase();
 });
