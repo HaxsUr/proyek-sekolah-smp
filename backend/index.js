@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const db = require('./db');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt'); // <-- PERUBAHAN DI SINI
 const jwt = require('jsonwebtoken');
 
 const app = express();
@@ -31,7 +31,7 @@ const initializeDatabase = async () => {
     }
 };
 
-// --- ROUTES OTENTIKASI BARU ---
+// --- ROUTES OTENTIKASI ---
 
 // Endpoint untuk registrasi user baru (hanya untuk setup awal)
 app.post('/api/auth/register', async (req, res) => {

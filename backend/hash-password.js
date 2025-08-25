@@ -1,13 +1,18 @@
-const bcrypt = require('bcrypt');
-const saltRounds = 10;
-const passwordToHash = 'AdminRahasia123'; // Ganti dengan password yang Anda inginkan
+const bcrypt = require('bcrypt'); // <-- PERUBAHAN DI SINI
 
-bcrypt.hash(passwordToHash, saltRounds, function(err, hash) {
-    if (err) {
-        console.error("Error hashing password:", err);
-        return;
-    }
-    console.log("Password Anda:", passwordToHash);
-    console.log("Simpan hash ini di database Anda:");
-    console.log(hash);
-});
+// --- TULIS PASSWORD YANG ANDA INGINKAN DI SINI ---
+const passwordToHash = 'PasswordSuperAman123!';
+// ----------------------------------------------------
+
+if (!passwordToHash) {
+  console.error('Error: Silakan masukkan password di dalam variabel passwordToHash.');
+  process.exit(1);
+}
+
+// Proses hashing password
+const salt = bcrypt.genSaltSync(10);
+const hashedPassword = bcrypt.hashSync(passwordToHash, salt);
+
+console.log('--- HASHED PASSWORD (salin teks di bawah ini) ---');
+console.log(hashedPassword);
+console.log('-------------------------------------------------');
