@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const db = require('./db');
-const bcrypt = require('bcrypt'); // <-- PERUBAHAN DI SINI
+// const bcrypt = require('bcrypt'); // <-- Dihapus
 const jwt = require('jsonwebtoken');
 
 const app = express();
@@ -12,28 +12,9 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Fungsi untuk inisialisasi tabel siswa (tidak berubah)
-const initializeDatabase = async () => {
-    try {
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS siswa (
-                id SERIAL PRIMARY KEY,
-                nisn VARCHAR(10) UNIQUE NOT NULL,
-                nama_lengkap VARCHAR(100) NOT NULL,
-                kelas VARCHAR(10) NOT NULL,
-                alamat TEXT,
-                created_at TIMESTAMPTZ DEFAULT NOW()
-            );
-        `);
-        console.log("Tabel 'siswa' berhasil disiapkan.");
-    } catch (err) {
-        console.error("Gagal inisialisasi database:", err);
-    }
-};
+// --- ROUTES OTENTIKASI (VERSI TANPA HASH) ---
 
-// --- ROUTES OTENTIKASI ---
-
-// Endpoint untuk registrasi user baru (hanya untuk setup awal)
+// Endpoint untuk registrasi user baru
 app.post('/api/auth/register', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
@@ -41,12 +22,10 @@ app.post('/api/auth/register', async (req, res) => {
     }
 
     try {
-        // Hash password sebelum disimpan ke database
-        const hashedPassword = await bcrypt.hash(password, 10);
-
+        // Simpan password langsung tanpa hashing
         const result = await db.query(
             'INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, username',
-            [username, hashedPassword]
+            [username, password]
         );
 
         res.status(201).json(result.rows[0]);
@@ -71,22 +50,20 @@ app.post('/api/auth/login', async (req, res) => {
         const user = result.rows[0];
 
         if (!user) {
-            // Jika user tidak ditemukan, kirim error
             return res.status(401).json({ error: 'Username atau password salah.' });
         }
 
-        // 2. Bandingkan password yang diinput dengan password (hash) di database
-        const isMatch = await bcrypt.compare(password, user.password);
+        // 2. Bandingkan password yang diinput dengan password di database secara langsung
+        const isMatch = (password === user.password);
 
         if (!isMatch) {
-            // Jika password tidak cocok, kirim error
             return res.status(401).json({ error: 'Username atau password salah.' });
         }
 
-        // 3. Jika cocok, buat "tiket masuk" (token) yang berlaku 1 jam
+        // 3. Jika cocok, buat token
         const token = jwt.sign(
             { userId: user.id, username: user.username },
-            process.env.JWT_SECRET || 'KATA_KUNCI_RAHASIA_DEFAULT', // Gunakan environment variable untuk ini
+            process.env.JWT_SECRET || 'KATA_KUNCI_RAHASIA_DEFAULT',
             { expiresIn: '1h' }
         );
 
@@ -99,8 +76,7 @@ app.post('/api/auth/login', async (req, res) => {
 
 
 // --- ROUTES SISWA (Tidak berubah) ---
-
-// GET: Mendapatkan semua data siswa
+// (Kode untuk /api/siswa Anda tetap sama di sini)
 app.get('/api/siswa', async (req, res) => {
     try {
         const result = await db.query('SELECT * FROM siswa ORDER BY id ASC');
@@ -110,7 +86,6 @@ app.get('/api/siswa', async (req, res) => {
     }
 });
 
-// POST: Menambahkan siswa baru
 app.post('/api/siswa', async (req, res) => {
     const { nisn, nama_lengkap, kelas, alamat } = req.body;
     try {
@@ -124,7 +99,6 @@ app.post('/api/siswa', async (req, res) => {
     }
 });
 
-// PUT: Mengupdate data siswa berdasarkan ID
 app.put('/api/siswa/:id', async (req, res) => {
     const { id } = req.params;
     const { nisn, nama_lengkap, kelas, alamat } = req.body;
@@ -139,7 +113,6 @@ app.put('/api/siswa/:id', async (req, res) => {
     }
 });
 
-// DELETE: Menghapus data siswa berdasarkan ID
 app.delete('/api/siswa/:id', async (req, res) => {
     const { id } = req.params;
     try {
@@ -150,7 +123,7 @@ app.delete('/api/siswa/:id', async (req, res) => {
     }
 });
 
+
 app.listen(PORT, () => {
     console.log(`Server berjalan di http://localhost:${PORT}`);
-    initializeDatabase();
 });
