@@ -28,25 +28,24 @@ export function LoginForm() {
 
       const data = await response.json();
 
+      // --- INI BAGIAN PENTING YANG DIPERBAIKI ---
+      // Jika respons dari server tidak OK (misalnya status 401 Unauthorized),
+      // maka lemparkan error dan hentikan proses login.
       if (!response.ok) {
-        // Jika response dari server tidak OK (error), lempar error
         throw new Error(data.error || 'Login gagal. Periksa kembali username dan password.');
       }
+      // -----------------------------------------
 
-      // Jika berhasil, simpan "tiket masuk" (token) di browser
+      // Kode di bawah ini HANYA akan berjalan jika response.ok bernilai true
       localStorage.setItem('authToken', data.token);
-
       toast.success("Login Berhasil!", { description: "Anda akan diarahkan ke dasbor siswa." });
-      
-      // Arahkan pengguna ke halaman data siswa
       router.push('/siswa');
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      // Tampilkan notifikasi error jika login gagal
+      // Tangkap error yang dilempar dan tampilkan notifikasinya
       toast.error("Login Gagal", { description: error.message });
     } finally {
-      // Hentikan loading, baik berhasil maupun gagal
       setIsLoading(false);
     }
   };
@@ -54,7 +53,7 @@ export function LoginForm() {
   return (
     <Card>
       <form onSubmit={handleLogin}>
-        <CardHeader >
+        <CardHeader>
           <CardTitle>Selamat Datang Kembali</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
