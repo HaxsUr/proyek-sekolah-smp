@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState } from 'react';
@@ -5,8 +6,9 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
+import { PasswordInput } from './PasswordInput'; // <-- Import komponen baru
 
 export function LoginForm() {
   const router = useRouter();
@@ -28,22 +30,15 @@ export function LoginForm() {
 
       const data = await response.json();
 
-      // --- INI BAGIAN PENTING YANG DIPERBAIKI ---
-      // Jika respons dari server tidak OK (misalnya status 401 Unauthorized),
-      // maka lemparkan error dan hentikan proses login.
       if (!response.ok) {
         throw new Error(data.error || 'Login gagal. Periksa kembali username dan password.');
       }
-      // -----------------------------------------
 
-      // Kode di bawah ini HANYA akan berjalan jika response.ok bernilai true
       localStorage.setItem('authToken', data.token);
       toast.success("Login Berhasil!", { description: "Anda akan diarahkan ke dasbor siswa." });
       router.push('/siswa');
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      // Tangkap error yang dilempar dan tampilkan notifikasinya
       toast.error("Login Gagal", { description: error.message });
     } finally {
       setIsLoading(false);
@@ -51,10 +46,11 @@ export function LoginForm() {
   };
 
   return (
-    <Card>
+    <Card className="w-full max-w-sm shadow-lg">
       <form onSubmit={handleLogin}>
-        <CardHeader>
-          <CardTitle>Selamat Datang Kembali</CardTitle>
+        <CardHeader className="text-center"> {/* <-- PERUBAHAN DI SINI */}
+          <CardTitle className="text-2xl">Selamat Datang Kembali</CardTitle>
+          <CardDescription>Silakan masuk untuk melanjutkan</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -70,12 +66,13 @@ export function LoginForm() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input 
-              id="password" 
-              type="password" 
-              required 
+            {/* Gunakan komponen PasswordInput yang baru */}
+            <PasswordInput 
+              id="password"
+              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
             />
           </div>
         </CardContent>

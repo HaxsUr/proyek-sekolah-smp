@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Printer } from "lucide-react";
+import { Plus, Printer, LogOut } from "lucide-react"; // <-- Import ikon LogOut
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "./data-table";
@@ -26,14 +26,10 @@ export const SiswaClient: React.FC<SiswaClientProps> = ({ initialData }) => {
     const [isClient, setIsClient] = useState(false);
     const router = useRouter();
 
-    // useEffect ini berfungsi sebagai "penjaga" halaman
     useEffect(() => {
-        // Tandai bahwa komponen sudah di-mount di sisi client (browser)
         setIsClient(true);
-        
         const token = localStorage.getItem('authToken');
         if (!token) {
-            // Jika tidak ada "tiket masuk" (token), tendang pengguna ke halaman login
             toast.error("Akses Ditolak", { description: "Silakan login terlebih dahulu." });
             router.push('/login');
         }
@@ -47,9 +43,20 @@ export const SiswaClient: React.FC<SiswaClientProps> = ({ initialData }) => {
         router.refresh();
     };
 
-    // Jangan render apapun sampai pengecekan selesai di browser
+    // --- FUNGSI BARU UNTUK LOGOUT ---
+    const handleLogout = () => {
+        // Hapus token dari penyimpanan browser
+        localStorage.removeItem('authToken');
+        
+        toast.success("Logout Berhasil", { description: "Anda telah keluar dari sesi." });
+        
+        // Arahkan kembali ke halaman login
+        router.push('/login');
+    };
+    // ------------------------------------
+
     if (!isClient) {
-        return null; // atau tampilkan loading spinner
+        return null;
     }
 
     return (
@@ -57,6 +64,11 @@ export const SiswaClient: React.FC<SiswaClientProps> = ({ initialData }) => {
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-bold">Data Siswa</h1>
                 <div className="flex items-center space-x-2">
+                    {/* Tombol Logout ditambahkan di sini */}
+                    <Button variant="outline" onClick={handleLogout}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Logout
+                    </Button>
                     <Button variant="outline" onClick={() => window.print()}>
                         <Printer className="mr-2 h-4 w-4" /> Cetak Data
                     </Button>
