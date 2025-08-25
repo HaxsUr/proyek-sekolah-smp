@@ -1,40 +1,89 @@
 "use client";
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 
 export function LoginForm() {
   const router = useRouter();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (event: React.FormEvent) => {
+  const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
-    // Logika otentikasi sebenarnya akan ada di sini.
-    // Untuk sekarang, kita langsung arahkan ke halaman siswa.
-    console.log("Login berhasil (simulasi)");
-    router.push('/siswa');
+    setIsLoading(true);
+
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Jika response dari server tidak OK (error), lempar error
+        throw new Error(data.error || 'Login gagal. Periksa kembali username dan password.');
+      }
+
+      // Jika berhasil, simpan "tiket masuk" (token) di browser
+      localStorage.setItem('authToken', data.token);
+
+      toast.success("Login Berhasil!", { description: "Anda akan diarahkan ke dasbor siswa." });
+      
+      // Arahkan pengguna ke halaman data siswa
+      router.push('/siswa');
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      // Tampilkan notifikasi error jika login gagal
+      toast.error("Login Gagal", { description: error.message });
+    } finally {
+      // Hentikan loading, baik berhasil maupun gagal
+      setIsLoading(false);
+    }
   };
 
   return (
     <Card>
       <form onSubmit={handleLogin}>
-        <CardHeader>
+        <CardHeader >
           <CardTitle>Selamat Datang Kembali</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
-            <Input id="username" type="text" placeholder="admin" required defaultValue="admin" />
+            <Input 
+              id="username" 
+              type="text" 
+              placeholder="admin" 
+              required 
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required defaultValue="password" />
+            <Input 
+              id="password" 
+              type="password" 
+              required 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full">Masuk</Button>
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? 'Memproses...' : 'Masuk'}
+          </Button>
         </CardFooter>
       </form>
     </Card>

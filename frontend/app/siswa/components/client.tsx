@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react"; // Tambahkan useEffect
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Printer } from "lucide-react";
-import { toast } from "sonner"; // <-- Ganti import ini
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "./data-table";
 import { columns } from "./columns";
@@ -23,31 +23,34 @@ interface SiswaClientProps {
 
 export const SiswaClient: React.FC<SiswaClientProps> = ({ initialData }) => {
     const [open, setOpen] = useState(false);
-    // Hapus baris di bawah ini, karena initialData sudah cukup
-    // const [data, setData] = useState<Siswa[]>(initialData); 
+    const [isClient, setIsClient] = useState(false);
     const router = useRouter();
-    // const { toast } = useToast(); // <-- HAPUS BARIS INI
 
+    // useEffect ini berfungsi sebagai "penjaga" halaman
     useEffect(() => {
+        // Tandai bahwa komponen sudah di-mount di sisi client (browser)
+        setIsClient(true);
+        
         const token = localStorage.getItem('authToken');
         if (!token) {
-            // Jika tidak ada token, tendang kembali ke halaman login
+            // Jika tidak ada "tiket masuk" (token), tendang pengguna ke halaman login
             toast.error("Akses Ditolak", { description: "Silakan login terlebih dahulu." });
             router.push('/login');
         }
-    }, [router]); // Tambahkan router sebagai dependensi
+    }, [router]);
 
     const handleFormSuccess = (message: string) => {
-        setOpen(false); // Tutup dialog
-        
-        // Panggil toast dari sonner
+        setOpen(false);
         toast.success("Sukses!", {
             description: message,
         });
-
-        // Refresh data dari server agar tabel terupdate
-        router.refresh(); 
+        router.refresh();
     };
+
+    // Jangan render apapun sampai pengecekan selesai di browser
+    if (!isClient) {
+        return null; // atau tampilkan loading spinner
+    }
 
     return (
         <>
@@ -72,7 +75,6 @@ export const SiswaClient: React.FC<SiswaClientProps> = ({ initialData }) => {
                     </Dialog>
                 </div>
             </div>
-            {/* Bungkus tabel dengan div untuk fitur print */}
             <div className="printable-area">
                 <DataTable columns={columns} data={initialData} />
             </div>
